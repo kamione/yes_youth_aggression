@@ -17,7 +17,8 @@ data <- here("data", "processed", "yes_baseline_outcome-aggression_n-2215_p-293.
     read_csv(col_types = cols()) %>% 
     mutate(BPAQ_tot = rowSums(across(BPAQ_1:BPAQ_12)), .before = BPAQ_1) %>%
     select(BPAQ_tot, all_of(top20$Variable)) %>% 
-    mutate_if(is.numeric, as.ordered)
+    # for dag, ordered variables are required
+    mutate_all(as.ordered)
     
 
 graph_layout <- here("outputs", "graph_layouts", "aggression_graph_layout.rds") %>% 
@@ -48,7 +49,6 @@ blacklist <-  rbind(
         from = top20$Variable[top20$Variable!="UCLA_19"], to = "UCLA_19"
     )
 )
-
 
 
 # DAG Estimation ---------------------------------------------------------------
@@ -115,7 +115,6 @@ graph <- qgraph(
     title = "Estimated DAG",
     filename = here("outputs", "figs", "aggression_dag_network")
 )
-
 
 
 

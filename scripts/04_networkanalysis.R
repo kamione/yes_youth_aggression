@@ -15,8 +15,7 @@ top20 <- here("data", "processed", "lasso_top20_variables_details.csv") %>%
     read_csv(col_types = cols()) %>% 
     arrange(Variable)
 
-
-data <- here("data", "processed", "yes_baseline_outcome-aggression_n-2215_p-293.csv") %>% 
+data <- here("data", "processed", "yes_baseline_outcome-aggression_n-2215_p-294.csv") %>% 
     read_csv(col_types = cols()) %>% 
     mutate(BPAQ_tot = rowSums(across(BPAQ_1:BPAQ_12)), .before = BPAQ_1) %>% 
     select(BPAQ_tot, all_of(top20$Variable))
