@@ -12,7 +12,7 @@ df <- here("data", "raw", "27 Jun 21 - FINAL ALL.sav") %>%
 # Data Cleaning ----------------------------------------------------------------
 filtered_df <- df %>% 
     filter(str_detect(Parti_ID, "YES")) %>%
-    select(Age, Sex, BMI, Edu_TotYr,
+    select(Parti_ID, Age, Sex, BMI, Edu_TotYr,
            starts_with(c("BPAQ", # outcome
                          "Birth",
                          "DS", "VF", "Inf", "TMT", "Stroop", "STROOP", "PG_", # Cognitive
@@ -33,7 +33,7 @@ filtered_df <- df %>%
     select(-matches("BSS_[EBTD]")) %>%
     select(-matches("SF12_[PM]")) %>%
     select(-matches("sympreact")) %>%  # remove sum scores
-    select_if(~!is.character(.)) %>% # remove variables with strings 
+    select(Parti_ID, which(sapply(., class) != "character")) %>%  # remove variables with strings 
     select_if(~sum(is.na(.))/length(.) < 0.25) %>%  # remove missing > 25% item
     zap_labels() %>%
     zap_formats() %>%
