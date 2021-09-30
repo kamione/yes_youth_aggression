@@ -91,7 +91,6 @@ network_graph <- qgraph(g$graph,
        labels = c("Aggression", top20$Label),
        nodeNames = c("Buss-Perry Aggression Scores (Total)", top20$Details),
        # node
-       palette = "pastel",
        vsize = 4.5,
        vTrans = 250,
        label.fill.vertical = 0.2,
@@ -105,7 +104,7 @@ network_graph <- qgraph(g$graph,
        legend.cex = 0.55,
        # layout
        GLratio = 0.6,
-       # curve
+       # edge curvature
        curve = 0.3,
        curveAll = TRUE,
        cut = 0,
