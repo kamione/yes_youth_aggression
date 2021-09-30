@@ -9,23 +9,45 @@ library(snow)
 
 # Data IO  ---------------------------------------------------------------------
 # Read data:
-top20 <- here("data", "processed", "lasso_top20_variables.csv") %>% 
+top20 <- here("data", "processed", "lasso_top20_variables_details.csv") %>% 
     read_csv(col_types = cols()) %>% 
-    arrange(Variable) %>% 
-    pull(Variable)
+    arrange(Variable)
 
-data <- here("data", "processed", "yes_baseline_outcome-aggression_n-2212_p-268.csv") %>% 
+data <- here("data", "processed", "yes_baseline_outcome-aggression_n-2215_p-293.csv") %>% 
     read_csv(col_types = cols()) %>% 
     mutate(BPAQ_tot = rowSums(across(BPAQ_1:BPAQ_12)), .before = BPAQ_1) %>%
-    select(BPAQ_tot, all_of(top20)) %>% 
-    mutate(SOFAS_6m = SOFAS_6m %>% cut(c(0, 41, 61, 81, 100), labels = c("worse", "bad", "fair", "good")) %>% as.ordered()) %>% 
+    select(BPAQ_tot, all_of(top20$Variable)) %>% 
     mutate_if(is.numeric, as.ordered)
     
 
-items <- data %>% colnames()
+graph_layout <- here("outputs", "graph_layouts", "aggression_graph_layout.rds") %>% 
+    read_rds()
 
 
-blacklist <- dataframe
+blacklist <-  rbind(
+    # Nothing cause traits:
+    data.frame(
+        from = top20$Variable[top20$Variable!="BFI_12"], to = "BFI_12"
+    ),
+    data.frame(
+        from = top20$Variable[top20$Variable!="BFI_17"], to = "BFI_17"
+    ),
+    data.frame(
+        from = top20$Variable[top20$Variable!="BFI_33"], to = "BFI_33"
+    ),
+    data.frame(
+        from = top20$Variable[top20$Variable!="BIS_15"], to = "BIS_15"
+    ),
+    data.frame(
+        from = top20$Variable[top20$Variable!="BIS_17"], to = "BIS_17"
+    ),
+    data.frame(
+        from = top20$Variable[top20$Variable!="UCLA_1"], to = "UCLA_1"
+    ),
+    data.frame(
+        from = top20$Variable[top20$Variable!="UCLA_19"], to = "UCLA_19"
+    )
+)
 
 
 
@@ -66,40 +88,33 @@ bn_estimator <- function(x, blacklist = NULL, n_imp = 10) {
     return(summarized)
 }
 
-res <- bn_estimator(data, n_imp = 10)
+res <- bn_estimator(data, blacklist = blacklist, n_imp = 10)
 
 # visualize the DAG estimation
-pdf(here("outputs", "figs", "dag_estimation.pdf"), width = 5, height = 4.5)
-graph <- qgraph(res[, c("from","to")],
-                directed = res$directed,
-                repulsion = 0.9,
-                title = "Estimated DAG",
-                labels = items)
-dev.off()
-
-
-
-data_sub <- here("data", "processed", "yes_baseline_outcome-aggression_n-2215_p-266.csv") %>% 
-    read_csv(col_types = cols()) %>% 
-    mutate(BPAQ_phy = rowSums(across(BPAQ_1:BPAQ_3)), .before = BPAQ_1) %>% 
-    mutate(BPAQ_verb = rowSums(across(BPAQ_4:BPAQ_6)), .before = BPAQ_1) %>% 
-    mutate(BPAQ_anger = rowSums(across(BPAQ_7:BPAQ_9)), .before = BPAQ_1) %>% 
-    mutate(BPAQ_host = rowSums(across(BPAQ_10:BPAQ_12)), .before = BPAQ_1) %>%
-    select(BPAQ_phy:BPAQ_host, all_of(top20)) %>% 
-    mutate(SOFAS_6m = SOFAS_6m %>% cut(c(0, 41, 61, 81, 100), labels = c("worse", "bad", "fair", "good")) %>% as.ordered()) %>% 
-    mutate_if(is.numeric, as.ordered)
-
-
-res_sub <- bn_estimator(data_sub, n_imp = 10)
-items_sub <- data_sub %>% colnames()
-# visualize the DAG estimation
-pdf(here("outputs", "figs", "dag_estimation.pdf"), width = 5, height = 4.5)
-graph <- qgraph(res_sub[, c("from","to")],
-                directed = res_sub$directed,
-                repulsion = 0.9,
-                title = "Estimated DAG",
-                labels = items_sub)
-dev.off()
+graph <- qgraph(
+    res[, c("from","to")],
+    directed = res$directed,
+    layout = graph_layout,
+    labels = c("Aggression", top20$Label),
+    groups = c("1. Outcomes", rep("2. Features", 20)), 
+    color = c("#B5CAA0", rep("#DAC9A6", 20)),
+    legend = FALSE,
+    # node
+    vsize = 8,
+    vTrans = 250,
+    label.fill.vertical = 0.2,
+    borders = FALSE,
+    # edge
+    esize = 3.5,
+    fade = TRUE,
+    # edge curvature
+    curve = 0.5,
+    curveAll = TRUE,
+    cut = 0,
+    filetype = "pdf",
+    title = "Estimated DAG",
+    filename = here("outputs", "figs", "aggression_dag_network")
+)
 
 
 
