@@ -5,9 +5,10 @@ library(here)
 library(ggpubr)
 library(glue)
 library(ggthemes)
+library(gtsummary)
 
 # Data I/O ---------------------------------------------------------------------
-data <- here("data", "processed", "yes_baseline_outcome-aggression_n-2215_p-293.csv") %>% 
+data <- here("data", "processed", "yes_baseline_outcome-aggression_n-2215_p-294.csv") %>% 
     read_csv(col_types = cols()) %>% 
     mutate(BPAQ_tot = rowSums(across(BPAQ_1:BPAQ_12)), .before = BPAQ_1) %>% 
     mutate(BPAQ_phy = rowSums(across(BPAQ_1:BPAQ_3)), .before = BPAQ_1) %>% 
@@ -56,3 +57,14 @@ ggexport(log_hist_fig,
          filename = here("outputs", "figs", "BPAQ_histogram_log_transform.pdf"),
          width = 16,
          height = 4)
+
+
+
+data %>% 
+    select(Age, Sex, Edu_TotYr) %>% 
+    mutate(Sex = factor(Sex, levels = c(1, 2), labels = c("Male", "Female"))) %>% 
+    tbl_summary() %>% 
+    bold_labels()
+    
+
+
