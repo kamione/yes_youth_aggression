@@ -145,28 +145,30 @@ boots_aggregated <- do.call(rbind, boots) %>%
 boot_graph <- qgraph(
     boots_aggregated[, c("from", "to","prop")],
     directed = boots_aggregated$directed,
+    # layout
     layout = graph_layout,
     labels = c("Aggression", top20$Label),
     groups = c("1. Outcomes", rep("2. Features", 20)),
     color = c("#B5CAA0", rep("#DAC9A6", 20)),
     legend = FALSE,
+    maximum = 1,
+    minimum = 0,
     # node
     vsize = 8,
     vTrans = 250,
     label.fill.vertical = 0.2,
     borders = FALSE,
     # edge
-    esize = 3.5,
+    esize = 4,
     fade = TRUE,
     edge.labels = TRUE,
-    edge.label.cex = 0.6,
-    maximum = 1,
-    minimum = 0.5,
-    posCol = "black",
-    parallelEdge = TRUE,
+    edge.label.cex = 0.65,
+    edge.label.position = 0.55,
+    edge.color = "gray50",
     # edge curvature
     curve = 0.5,
     curveAll = TRUE,
     filetype = "pdf",
     filename = here("outputs", "figs", "aggression_dag_network_bootstrap_n-1000")
 )
+   
