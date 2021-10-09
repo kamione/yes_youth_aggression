@@ -5,7 +5,12 @@ library(bootnet)
 library(qgraph)
 library(bnlearn)
 library(Cairo)
-library(snow)
+library(parallel)
+library(tictoc)
+library(pbmcapply)
+
+# fix the conflict
+select <-  dplyr::select
 
 # Data IO  ---------------------------------------------------------------------
 # Read data:
@@ -13,14 +18,13 @@ top20 <- here("data", "processed", "lasso_top20_variables_details.csv") %>%
     read_csv(col_types = cols()) %>% 
     arrange(Variable)
 
-data <- here("data", "processed", "yes_baseline_outcome-aggression_n-2215_p-293.csv") %>% 
+data <- here("data", "processed", "yes_baseline_outcome-aggression_n-2215_p-294.csv") %>% 
     read_csv(col_types = cols()) %>% 
     mutate(BPAQ_tot = rowSums(across(BPAQ_1:BPAQ_12)), .before = BPAQ_1) %>%
     select(BPAQ_tot, all_of(top20$Variable)) %>% 
     # for dag, ordered variables are required
     mutate_all(as.ordered)
     
-
 graph_layout <- here("outputs", "graph_layouts", "aggression_graph_layout.rds") %>% 
     read_rds()
 
@@ -61,16 +65,16 @@ bn_estimator <- function(x, blacklist = NULL, n_imp = 10) {
     library(qgraph)
     
     # impute missing data using mice
-    miceres <- mice(data, n_imp, seed = 1234)
+    miceres <- mice(x, n_imp, seed = 1234)
     
     # estimate graphs of each imputation
-    graphs <- lapply(seq_len(n_imp), function(i)
-        {
+    graphs <- lapply(seq_len(n_imp), function(i) {
             imp <- complete(miceres, i)
-            # Estimate the network:
+            
+            # estimate the network:
             res <- pc.stable(imp, blacklist = blacklist)
      
-            # Obtain edges:
+            # obtain edges:
             graph <- qgraph(res, DoNotPlot = TRUE)
             edges <- as.data.frame(graph$Edgelist[c("from", "to", "directed")])
             return(edges)
@@ -112,25 +116,57 @@ graph <- qgraph(
     curveAll = TRUE,
     cut = 0,
     filetype = "pdf",
-    title = "Estimated DAG",
     filename = here("outputs", "figs", "aggression_dag_network")
 )
 
-
-
 # Bootstrapping for Stability --------------------------------------------------
-
-cl <- makeSOCKcluster(8)
-
-boots <- parLapply(cl, 1:100, function(x)
-    {
-        data_bs <- data[sample(seq_len(nrow(data)), nrow(data), TRUE), ]
-        bn_estimator(data_bs, blacklist, 1)
-    }
+tic("start bootstrapping...")
+boots <- pbmclapply(1:1000, function(x) {
+        n_subj <- nrow(data)
+        bs_index <- sample(x = seq_len(n_subj), size = n_subj, replace = TRUE)
+        # bootstrapping the participants
+        data_bs <- data[bs_index, ] %>% droplevels()
+        res_bs <- bn_estimator(data_bs, blacklist = blacklist, n_imp = 10)
+        return(res_bs)
+    },
+    mc.style = "txt",
+    mc.cores = getOption("mc.cores", 8L)
 )
+toc()
+# write the results for cache
+# write_rds(boots, here("cache", "dag_bootstrap_n-1000.rds"))
 
-stopCluster(cl)
+boots_aggregated <- do.call(rbind, boots) %>%
+    select(from, to, directed) %>% 
+    group_by(from, to, directed) %>% 
+    tally() %>% 
+    mutate(prop = n / length(boots))
 
-
-
-
+boot_graph <- qgraph(
+    boots_aggregated[, c("from", "to","prop")],
+    directed = boots_aggregated$directed,
+    layout = graph_layout,
+    labels = c("Aggression", top20$Label),
+    groups = c("1. Outcomes", rep("2. Features", 20)),
+    color = c("#B5CAA0", rep("#DAC9A6", 20)),
+    legend = FALSE,
+    # node
+    vsize = 8,
+    vTrans = 250,
+    label.fill.vertical = 0.2,
+    borders = FALSE,
+    # edge
+    esize = 3.5,
+    fade = TRUE,
+    edge.labels = TRUE,
+    edge.label.cex = 0.6,
+    maximum = 1,
+    minimum = 0.5,
+    posCol = "black",
+    parallelEdge = TRUE,
+    # edge curvature
+    curve = 0.5,
+    curveAll = TRUE,
+    filetype = "pdf",
+    filename = here("outputs", "figs", "aggression_dag_network_bootstrap_n-1000")
+)
