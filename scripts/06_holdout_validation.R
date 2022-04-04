@@ -429,4 +429,19 @@ ggsave(filename = here("outputs", "figs", "model-aggr_outcome-aggr_desc-overlapp
        scatter_aggr_overlapped_features_figure,
        width = 6,
        height = 5)
+
+
+ggarrange(
+    scatter_psy_figure,
+    scatter_aggr_figure,
+    psy_feature_performance_figure,
+    aggr_feature_performance_figure,
+    scatter_psy_overlapped_features_figure,
+    scatter_aggr_overlapped_features_figure,
+    ncol = 2, nrow = 3, labels = LETTERS[1:6]
+) %>% 
+    ggexport(filename = here("outputs", "figs", "figure2.pdf"),
+             width = 14, height = 12)
+     
+
  
