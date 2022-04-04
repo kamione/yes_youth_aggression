@@ -19,8 +19,6 @@ source(here("src", "R", "utilities.R"))
 psychopathology_list <- c("PHQ9_tot", "YMRS_tot", "HCL32_tot", "GAD7_tot",
                           "LSAS_Tot", "YBOCS_Sym", "Cape_distress_tot",
                           "PQB_tot")
-psychopathology_label <- c("DEP", "Mania", "HM", "GAD", "LSAS", "OCD", "CAPE",
-                           "PQB")
 
 discovery_df <- here("data", "processed", "discovery_dataset.rds") %>% 
     read_rds() %>% 
