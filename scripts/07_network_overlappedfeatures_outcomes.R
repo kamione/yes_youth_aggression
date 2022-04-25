@@ -17,7 +17,7 @@ overlapped_features_details <-
     here("data", "processed", "lasso_overlapped_features_details.csv") %>% 
     read_csv(show_col_types = FALSE)
 
-preprocessed_df <- here("data", "processed", "yes_baseline_outcome-aggression_n-2186_p-288.rds") %>% 
+discovery_df <-  here("data", "processed", "discovery_dataset.rds") %>% 
     read_rds() %>% 
     select(c(bpaq_tot, g_psy, all_of(overlapped_features))) %>% 
     drop_na()
@@ -28,7 +28,7 @@ print(glue::glue("A total of {n_features} is selected"))
 
 # Symptom Network --------------------------------------------------------------
 network_data       <- list()
-network_data$data  <- preprocessed_df
+network_data$data  <- discovery_df
 network_data$node  <- c("Aggr", "Psy", overlapped_features_details$Label)
 network_data$node_detail <- c("Sum of Buss-Perry Aggression Questionnaire (Log)",
                               "General Psychoapthology",
@@ -37,7 +37,7 @@ network_data$node_col <- c("#B5CAA0", "#B5CAA0", rep("#DAC9A6", n_features))
 network_data$group <- c("1. Outcomes", "1. Outcomes", rep("2. Features", n_features))
 
 g <- estimateNetwork(
-    preprocessed_df,
+    discovery_df,
     default = "EBICglasso",
     threshold = TRUE
 )
@@ -45,7 +45,7 @@ g <- estimateNetwork(
 centrality_plot <- g %>%
     centralityPlot(
         print   = FALSE,
-        #labels  = c("Aggression", top20$Label),
+        labels  = c("Aggr", "Psy", overlapped_features_details$Label),
         include = "ExpectedInfluence",
         orderBy = "ExpectedInfluence"
     ) +
@@ -53,7 +53,8 @@ centrality_plot <- g %>%
     labs(x = "Standardized Centrality Indices") +
     theme(axis.title = element_text(size = 8)) +
     theme_pander()
-ggsave(here("outputs", "figs", "data-full_desc-network_centrality.pdf"),
+centrality_plot
+ggsave(here("outputs", "figs", "data-discovery_desc-network_centrality.pdf"),
        centrality_plot, height = 6, width = 4)
 
 # plot the graph
@@ -87,10 +88,10 @@ network_graph <- qgraph(
     filename = here("outputs", "figs", "data-discovery_desc-outcomes_features_network")
 )
 
-  # save graph layout
+# save graph layout
 write_rds(
     network_graph$layout, 
-    file = here("outputs", "cache", "data-full_desc-aggression_graph_layout.rds"))
+    file = here("outputs", "cache", "data-discovery_desc-aggression_graph_layout.rds"))
 
 # check stability of graph
 g_bs <- bootnet(g,
@@ -105,7 +106,7 @@ stability_plot <- plot(g_bs, statistics = "ExpectedInfluence") +
         legend.position = "none",
         plot.margin = margin(2, 2, 2, 2, "mm")
     )
-ggsave(here("outputs", "figs", "data-full_desc-bs_stability.pdf"),
+ggsave(here("outputs", "figs", "data-discovery_desc-bs_stability.pdf"),
        stability_plot, height = 4, width = 4)
 
 
