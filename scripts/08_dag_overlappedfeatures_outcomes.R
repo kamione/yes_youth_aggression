@@ -9,7 +9,7 @@ library(pbmcapply)
 
 # Data IO  ---------------------------------------------------------------------
 overlapped_features <- read_rds(here("outputs", "cache", "overlapped_features.rds"))
-graph_layout <- read_rds(here("outputs", "cache", "data-full_desc-aggression_graph_layout.rds"))
+graph_layout <- read_rds(here("outputs", "cache", "data-discovery_desc-aggression_graph_layout.rds"))
 
 overlapped_features_details <- 
     here("data", "processed", "lasso_overlapped_features_details.csv") %>% 
@@ -17,7 +17,7 @@ overlapped_features_details <-
 
 discovery_df <- here("data", "processed", "discovery_dataset.rds") %>% 
     read_rds() %>% 
-    select(c(bpaq_tot, g_psy, all_of(overlapped_features))) %>% 
+    select(bpaq_tot, g_psy, all_of(overlapped_features)) %>% 
     drop_na() %>% 
     mutate(
         bpaq_tot = ntile(bpaq_tot, 10),
@@ -48,11 +48,11 @@ blacklist <- rbind(
         to = "BIS_29"
     ),
     data.frame(
-        from =keep(overlapped_features, overlapped_features != "BFI_37"), 
+        from = keep(overlapped_features, overlapped_features != "BFI_37"), 
         to = "BFI_37"
     ),
     data.frame(
-        from =keep(overlapped_features, overlapped_features != "Age"),
+        from = keep(overlapped_features, overlapped_features != "Age"),
         to = "Age"
     )
 )
@@ -138,3 +138,4 @@ boot_graph <- qgraph(
     filetype = "pdf",
     filename = here("outputs", "figs", "data-discovery_desc-dag_bs_1000")
 )
+    

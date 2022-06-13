@@ -19,9 +19,8 @@ overlapped_features_details <-
 
 discovery_df <-  here("data", "processed", "discovery_dataset.rds") %>% 
     read_rds() %>% 
-    select(c(bpaq_tot, g_psy, all_of(overlapped_features))) %>% 
+    select(bpaq_tot, g_psy, all_of(overlapped_features)) %>% 
     drop_na()
-
 
 n_features <- length(overlapped_features)
 print(glue::glue("A total of {n_features} is selected"))
@@ -34,7 +33,7 @@ network_data$node_detail <- c("Sum of Buss-Perry Aggression Questionnaire (Log)"
                               "General Psychoapthology",
                               overlapped_features_details$Details)
 network_data$node_col <- c("#B5CAA0", "#B5CAA0", rep("#DAC9A6", n_features))
-network_data$group <- c("1. Outcomes", "1. Outcomes", rep("2. Features", n_features))
+network_data$group <- c("1. Outcomes", "1. Outcomes",rep("2. Features", n_features))
 
 g <- estimateNetwork(
     discovery_df,
