@@ -11,6 +11,10 @@ psychopathology_list <- c("PHQ9_tot", "YMRS_tot", "HCL32_tot", "GAD7_tot",
                           "LSAS_Tot", "YBOCS_Sym", "Cape_distress_tot",
                           "PQB_tot")
 
+df_cidi <- here("data", "raw", "20200407_yes_cidi_e34_data.xlsx") %>% 
+    readxl::read_excel(skip = 1) %>% 
+    set_names("Parti_ID", "cidi_e34")
+
 df <- here("data", "raw", "27 Jun 21 - FINAL ALL.sav") %>% 
     read_spss(user_na = TRUE) %>%
     zap_labels() %>%
@@ -24,7 +28,8 @@ df <- here("data", "raw", "27 Jun 21 - FINAL ALL.sav") %>%
     na_if(44198) %>% 
     na_if(45692) %>% 
     filter(str_detect(Parti_ID, "YES")) %>% 
-    drop_na(Age, Sex, Edu_TotYr, BPAQ_1:BPAQ_12, all_of(psychopathology_list))
+    drop_na(Age, Sex, Edu_TotYr, BPAQ_1:BPAQ_12, all_of(psychopathology_list)) %>% 
+    left_join(df_cidi, by = "Parti_ID")
 
 
 # Preporcessing ----------------------------------------------------------------
@@ -36,7 +41,7 @@ preprocessed_df <- df %>%
     select(-matches("BSS_[EBTD]")) %>%
     select(-matches("SF12_[PM]")) %>%
     select(-matches("sympreact")) %>% 
-    select(Parti_ID, Age, Sex, BMI, Edu_TotYr, # demographics
+    select(Parti_ID, Age, Sex, BMI, Edu_TotYr, cidi_e34, # demographics
            starts_with(c(
                "BPAQ", # outcome
                "DS", "VF", "Inf", "TMT", "Stroop", "STROOP", "PG_", # cognition
@@ -82,7 +87,6 @@ write_rds(
          glue("yes_baseline_outcome-aggression_n-{df_size[1]}_p-{df_size[2]}.rds")
     )
 )
-
 
 
 # Missing Pattern --------------------------------------------------------------
