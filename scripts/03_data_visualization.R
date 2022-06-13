@@ -28,17 +28,19 @@ full_df <- discovery_df %>%
 
 # Distribution Visualization --------------------------------------------------
 full_compaison_table <- full_df %>% 
-    select(split, Age, Sex, Edu_TotYr, bpaq_host, g_psy) %>%
+    select(split, Age, Sex, Edu_TotYr, cidi_e34, bpaq_tot, g_psy) %>%
     tbl_summary(
         by = split,
         statistic = list(all_continuous() ~ "{mean} ({sd})"),
         digits = all_continuous() ~ c(2, 2),
         label = list(
             Edu_TotYr = "Years of Education",
-            bpaq_host = "BPAQ hostility",
-            g_psy = "Psychopathology (g)"
+            bpaq_tot = "Trait Aggression",
+            g_psy = "General Psychopathology",
+            cidi_e34 = "Aggressive Behavior (Lifetime)"
         )
     ) %>% 
+    add_overall() %>% 
     add_p() %>% 
     add_q() %>% 
     bold_p(q = TRUE)
@@ -56,20 +58,19 @@ full_compaison_table %>%
     )
 
 
-
 # Table Benign vs. High Psychopathology ---------------------------------------
 discovery_comparison_table <- discovery_df %>% 
-    mutate(psy_rank = ntile(g_psy, 4)) %>% 
-    filter(psy_rank %in% c(1, 4)) %>% 
-    mutate(psy_rank = factor(
-            psy_rank, levels = c(1, 4), 
-            labels = c("Benign", "High")
-        )
-    ) %>% 
-    select(psy_rank, Age, Sex, Edu_TotYr, bpaq_tot:bpaq_host, 
+    mutate(cidi_e34 = factor(cidi_e34, levels = c(0, 1), labels = c("No", "Yes"))) %>% 
+    #filter(psy_rank %in% c(1, 4)) %>% 
+    #mutate(psy_rank = factor(
+    #        psy_rank, levels = c(1, 4), 
+    #        labels = c("Low", "High")
+    #   )
+    #) %>% 
+    select(Age, Sex, Edu_TotYr, cidi_e34, bpaq_tot:bpaq_host, g_psy,
            all_of(psychopathology_list)) %>% 
     tbl_summary(
-        by = psy_rank,
+        by = cidi_e34,
         statistic = list(all_continuous() ~ "{mean} ({sd})"),
         digits = all_continuous() ~ c(2, 2),
         label = list(
@@ -86,7 +87,9 @@ discovery_comparison_table <- discovery_df %>%
             bpaq_phy = "BPAQ physical aggression",
             bpaq_verb = "BPAQ verbal aggression",
             bpaq_anger = "BPAQ anger",
-            bpaq_host = "BPAQ hostility"
+            bpaq_host = "BPAQ hostility",
+            cidi_e34 = "Aggressive Behavior (Lifetime)",
+            g_psy = "General Psychopathology"
         )
     ) %>% 
     add_p() %>% 
@@ -94,17 +97,11 @@ discovery_comparison_table <- discovery_df %>%
     bold_p(q = TRUE)
 
 holdout_comparison_table <- validation_df %>% 
-    mutate(psy_rank = ntile(g_psy, 4)) %>% 
-    filter(psy_rank %in% c(1, 4)) %>% 
-    mutate(psy_rank = factor(
-        psy_rank, levels = c(1, 4), 
-        labels = c("Benign", "High")
-    )
-    ) %>% 
-    select(psy_rank, Age, Sex, Edu_TotYr, bpaq_tot:bpaq_host, 
+    mutate(cidi_e34 = factor(cidi_e34, levels = c(0, 1), labels = c("No", "Yes"))) %>% 
+    select(Age, Sex, Edu_TotYr, cidi_e34, bpaq_tot:bpaq_host, g_psy,
            all_of(psychopathology_list)) %>% 
     tbl_summary(
-        by = psy_rank,
+        by = cidi_e34,
         type = YMRS_tot ~ "continuous",
         statistic = list(all_continuous() ~ "{mean} ({sd})"),
         digits = all_continuous() ~ c(2, 2),
@@ -122,7 +119,9 @@ holdout_comparison_table <- validation_df %>%
             bpaq_phy = "BPAQ physical aggression",
             bpaq_verb = "BPAQ verbal aggression",
             bpaq_anger = "BPAQ anger",
-            bpaq_host = "BPAQ hostility"
+            bpaq_host = "BPAQ hostility",
+            cidi_e34 = "Aggressive Behavior (Lifetime)",
+            g_psy = "General Psychopathology"
         )
     ) %>% 
     add_p() %>% 
@@ -132,6 +131,7 @@ holdout_comparison_table <- validation_df %>%
 merged_comparison_table <- tbl_merge(
     tbls = list(discovery_comparison_table, holdout_comparison_table),
     tab_spanner = c("**Discovery Dataset**", "**Holdout Dataset**"))
+merged_comparison_table
 
 merged_comparison_table %>% 
     as_gt() %>% 
@@ -145,15 +145,89 @@ merged_comparison_table %>%
         pr_section = sect_properties_wide
     )
 
+m1_discovery <- discovery_df %>% 
+    glm(formula = cidi_e34 ~ Age + Sex + Edu_TotYr + bpaq_tot + g_psy, family = binomial(link="logit"))
+
+m1_holdout <- validation_df %>% 
+    glm(formula = cidi_e34 ~ Age + Sex + Edu_TotYr + bpaq_tot + g_psy, family = binomial(link="logit"))
+
+m1_discovery_table <- tbl_merge(
+    list(
+        tbl_regression(
+            m1_discovery, 
+            tidy_fun = tidy_standardize,
+            label = list(
+                Edu_TotYr = "Years of Education",
+                bpaq_tot = "Trait Aggression",
+                g_psy = "General Psychopathology"
+            )
+        ) ,
+        tbl_regression(
+            m1_discovery,
+            label = list(
+                Edu_TotYr = "Years of Education",
+                bpaq_tot = "Trait Aggression",
+                g_psy = "General Psychopathology"
+            )
+        ) %>%
+            modify_column_hide(c(estimate, ci)) %>% 
+            bold_p
+    )
+) %>% 
+    modify_spanning_header(c(estimate_1, ci_1, p.value_2) ~ NA)
+
+m1_holdout_table <- tbl_merge(
+    list(
+        tbl_regression(
+            m1_holdout, 
+            tidy_fun = tidy_standardize,
+            label = list(
+                Edu_TotYr = "Years of Education",
+                bpaq_tot = "Trait Aggression",
+                g_psy = "General Psychopathology"
+            )
+        ),
+        tbl_regression(
+            m1_holdout,
+            label = list(
+                Edu_TotYr = "Years of Education",
+                bpaq_tot = "Trait Aggression",
+                g_psy = "General Psychopathology"
+            )
+        ) %>%
+            modify_column_hide(c(estimate, ci)) %>% 
+            bold_p
+    )
+) %>% 
+    modify_spanning_header(c(estimate_1, ci_1, p.value_2) ~ NA)
+
+merged_reg_table <- tbl_merge(
+    tbls = list(m1_discovery_table, m1_holdout_table),
+    tab_spanner = c("**Discovery Dataset**", "**Holdout Dataset**"))
+merged_reg_table
+
+
+merged_reg_table %>% 
+    as_gt() %>% 
+    gt::gtsave(here("outputs", "tables", "reg_aggresivebehavior.html"))
+
+merged_reg_table %>% 
+    as_flex_table() %>% 
+    bold(part = "header") %>% 
+    save_as_docx(
+        path = here("outputs", "tables", "reg_aggresivebehavior.docx"),
+        pr_section = sect_properties_wide
+    )
+
 
 # Visualization Partial Correlation --------------------------------------------
 psychopathology_label <- c("DEP", "Mania", "HM", "GAD", "LSAS", "OCD", "CAPE",
                            "PQB")
 
 network_data <- list()
-network_data$data <- full_df %>% select(bpaq_phy:bpaq_host, all_of(psychopathology_list)) 
-network_data$node_col <- c(rep("#B5CAA0", 4), rep("#DAC9A6", 8))
-network_data$lable <- c("Phy", "Verb", "Anger", "Host", psychopathology_label)
+network_data$data <- full_df %>% select(cidi_e34, bpaq_phy:bpaq_host, all_of(psychopathology_list)) 
+network_data$node_col <- c(rep("#B5CAA0", 5), rep("#DAC9A6", 8))
+network_data$lable <- c("AggrBeh", "Phy", "Verb", "Anger", "Host", psychopathology_label)
 network_data$group <- c("1. Outcomes", rep("2. Features", 8))
 
 library(bootnet)

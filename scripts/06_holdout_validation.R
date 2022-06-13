@@ -20,22 +20,28 @@ holdout_df <- here("data", "processed", "holdout_dataset.rds") %>%
     read_rds() %>% 
     select(-c(Parti_ID, bpaq_phy:bpaq_host, all_of(psychopathology_list)))
 
-params_psy_df <- here("outputs", "cache", "model-psy_desc-model_parameters.rds") %>% 
+params_psy_df <- 
+    here("outputs", "cache", "model-psy_desc-model_parameters.rds") %>% 
     read_rds()
-params_aggr_df <- here("outputs", "cache", "model-aggr_desc-model_parameters.rds") %>% 
+params_aggr_df <- 
+    here("outputs", "cache", "model-aggr_desc-model_parameters.rds") %>% 
     read_rds()
-vi_psy_df <- here("outputs", "cache", "model-psy_desc-model_importance.rds") %>% 
+vi_psy_df <- 
+    here("outputs", "cache", "model-psy_desc-model_importance.rds") %>% 
     read_rds()
-vi_aggr_df <- here("outputs", "cache", "model-aggr_desc-model_importance.rds") %>% 
+vi_aggr_df <- 
+    here("outputs", "cache", "model-aggr_desc-model_importance.rds") %>% 
     read_rds()
 
 psy_intercept <- params_psy_df %>% 
     slice(1) %>% 
-    mutate(mean = mean(c_across(starts_with("iter")), na.rm = TRUE), .after = variable) %>% 
+    mutate(mean = mean(c_across(starts_with("iter")), na.rm = TRUE),
+           .after = variable) %>% 
     pull(mean)
 aggr_intercept <- params_aggr_df %>% 
     slice(1) %>% 
-    mutate(mean = mean(c_across(starts_with("iter")), na.rm = TRUE), .after = variable) %>% 
+    mutate(mean = mean(c_across(starts_with("iter")), na.rm = TRUE),
+           .after = variable) %>% 
     pull(mean)
 
 
@@ -62,7 +68,8 @@ psy_sorted_df <- vi_psy_df %>%
 
 psy_sorted_feature_param <- pull(psy_sorted_df, b_mean)
 psy_sorted_feature_names <- pull(psy_sorted_df, variable)
-write_rds(psy_sorted_feature_names, here("outputs", "cache", "psy_sorted_feature_names.rds"))
+write_rds(psy_sorted_feature_names, 
+          here("outputs", "cache", "psy_sorted_feature_names.rds"))
 
 preped_psy_recipe <- discovery_df %>%
     select(-bpaq_tot) %>% 
@@ -78,9 +85,10 @@ baked_psy_holdout_df <- holdout_df %>%
     select(-bpaq_tot) %>%
     bake(preped_psy_recipe, new_data = .)
 
-psy_feature_holdout_df <- select(baked_psy_holdout_df, all_of(psy_sorted_feature_names))
+feature_psy_holdout_df <- select(baked_psy_holdout_df, all_of(psy_sorted_feature_names))
 
-psy_res_df <- (psy_intercept + as.matrix(psy_feature_holdout_df) %*% psy_sorted_feature_param) %>% 
+psy_res_df <- 
+    (psy_intercept + as.matrix(feature_psy_holdout_df) %*% psy_sorted_feature_param) %>% 
     as_tibble(.name_repair = ~".pred") %>% 
     bind_cols(baked_psy_holdout_df %>% select(g_psy))
 
@@ -137,7 +145,6 @@ ggsave(filename = here("outputs", "figs", "model-psy_outcome-psy_desc-scatter.pd
        scatter_psy_figure,
        width = 6,
        height = 5)
-
 
 rmse_list <- NULL
 for (ith_param in 1:273) {
@@ -268,7 +275,6 @@ ggsave(filename = here("outputs", "figs", "model-aggr_outcome-aggr_desc-scatter.
        height = 5)
 
 
-
 rmse_list <- NULL
 for (ith_param in 1:273) {
     params <- aggr_sorted_feature_param[1:ith_param]
@@ -298,38 +304,38 @@ ggsave(filename = here("outputs", "figs", "model-aggr_outcome-aggr_desc-feature_
 
 
 
-# Performance Overlapped Features ----------------------------------------------
-overlapped_features <- intersect(
+# Performance Overlapping Features ----------------------------------------------
+overlapping_features <- intersect(
     psy_sorted_feature_names[1:75], 
     aggr_sorted_feature_names[1:75]
 )
 
 psy_selected_feature_param <- psy_sorted_df %>% 
-    filter(variable %in% overlapped_features) %>% 
+    filter(variable %in% overlapping_features) %>% 
     pull(b_mean)
 
-selected_feature_psy_holdout_df <- select(baked_psy_holdout_df, all_of(overlapped_features))
+selected_feature_psy_holdout_df <- select(baked_psy_holdout_df, all_of(overlapping_features))
 
-psy_overlapped_featureres_df <- 
+psy_overlapping_featureres_df <- 
     (psy_intercept + as.matrix(selected_feature_psy_holdout_df) %*% psy_selected_feature_param) %>% 
     as_tibble(.name_repair = ~".pred") %>% 
     bind_cols(baked_psy_holdout_df %>% select(g_psy))
 
-psy_r <- psy_overlapped_featureres_df %>%
+psy_r <- psy_overlapping_featureres_df %>%
     correlation::correlation() %>% 
     pluck("r")
-psy_p <- psy_overlapped_featureres_df %>%
+psy_p <- psy_overlapping_featureres_df %>%
     correlation::correlation() %>% 
     pluck("p")
-psy_rmse <- psy_overlapped_featureres_df %>% 
+psy_rmse <- psy_overlapping_featureres_df %>% 
     rmse(truth = g_psy, estimate = .pred) %>%
     pull(.estimate) %>% 
     format(digits = 3)
-psy_mae <- psy_overlapped_featureres_df %>% 
-    mae(truth = g_psyt, estimate = .pred) %>% 
+psy_mae <- psy_overlapping_featureres_df %>% 
+    mae(truth = g_psy, estimate = .pred) %>% 
     pull(.estimate) %>% 
     format(digits = 3)
-psy_rsq <- psy_overlapped_featureres_df %>% 
+psy_rsq <- psy_overlapping_featureres_df %>% 
     rsq(truth = g_psy, estimate = .pred) %>% 
     pull(.estimate) %>% 
     format(digits = 3)
@@ -337,13 +343,13 @@ psy_rsq <- psy_overlapped_featureres_df %>%
 first_annotation <- glue("italic(r)=={format(psy_r, digits = 3)}*','~italic(p)<0.001")
 second_annotation <- glue("R^2=={psy_rsq}*','~MAE=={psy_mae}*','~RMSE=={psy_rmse}")
 
-scatter_psy_overlapped_features_figure <- psy_overlapped_featureres_df %>% 
+scatter_psy_overlapping_features_figure <- psy_overlapping_featureres_df %>% 
     ggplot(aes(x = g_psy, y = .pred)) +
     geom_jitter(width = 0.1, size = 3, color = "grey30", alpha = 0.9) +
     geom_smooth(method = "lm", color = "tomato3", fill = "grey80") +
     #geom_abline(slope = 1, lty = 2, color = "grey60") +
     labs(x = "Empirical Score", y = "Predicted Score", 
-         title = "General Psychopathology (Only Overlapped Features)") +
+         title = "General Psychopathology (Only Overlapping Features)") +
     scale_x_continuous(limits = c(-2.5, 5)) + 
     scale_y_continuous(limits = c(-1, 2)) +
     annotate(geom = "text",
@@ -362,38 +368,38 @@ scatter_psy_overlapped_features_figure <- psy_overlapped_featureres_df %>%
              parse = TRUE) +
     theme_pander() +
     theme(plot.margin = margin(2, 2, 2, 2, "mm"))
-ggsave(filename = here("outputs", "figs", "model-psy_outcome-psy_desc-overlapped_feature_scatter.pdf"), 
-       scatter_psy_overlapped_features_figure,
+ggsave(filename = here("outputs", "figs", "model-psy_outcome-psy_desc-overlapping_feature_scatter.pdf"), 
+       scatter_psy_overlapping_features_figure,
        width = 6,
        height = 5)
 
 
 aggr_selected_feature_param <- aggr_sorted_df %>% 
-    filter(variable %in% overlapped_features) %>% 
+    filter(variable %in% overlapping_features) %>% 
     pull(b_mean)
 
-selected_feature_aggr_holdout_df <- select(baked_aggr_holdout_df, all_of(overlapped_features))
+selected_feature_aggr_holdout_df <- select(baked_aggr_holdout_df, all_of(overlapping_features))
 
-agg_overlapped_featureres_df <- 
+agg_overlapping_featureres_df <- 
     (aggr_intercept + as.matrix(selected_feature_aggr_holdout_df) %*% aggr_selected_feature_param) %>% 
     as_tibble(.name_repair = ~".pred") %>% 
-    bind_cols(agg_overlapped_featureres_df %>% select(bpaq_tot))
+    bind_cols(baked_aggr_holdout_df %>% select(bpaq_tot))
 
-agg_r <- agg_overlapped_featureres_df %>%
+agg_r <- agg_overlapping_featureres_df %>%
     correlation::correlation() %>% 
     pluck("r")
-agg_p <- agg_overlapped_featureres_df %>%
+agg_p <- agg_overlapping_featureres_df %>%
     correlation::correlation() %>% 
     pluck("p")
-agg_rmse <- agg_overlapped_featureres_df %>% 
+agg_rmse <- agg_overlapping_featureres_df %>% 
     rmse(truth = bpaq_tot, estimate = .pred) %>%
     pull(.estimate) %>% 
     format(digits = 3)
-agg_mae <- agg_overlapped_featureres_df %>% 
+agg_mae <- agg_overlapping_featureres_df %>% 
     mae(truth = bpaq_tot, estimate = .pred) %>% 
     pull(.estimate) %>% 
     format(digits = 3)
-agg_rsq <- agg_overlapped_featureres_df %>% 
+agg_rsq <- agg_overlapping_featureres_df %>% 
     rsq(truth = bpaq_tot, estimate = .pred) %>% 
     pull(.estimate) %>% 
     format(digits = 3)
@@ -401,12 +407,12 @@ agg_rsq <- agg_overlapped_featureres_df %>%
 first_annotation <- glue("italic(r)=={format(agg_r, digits = 3)}*','~italic(p)<0.001")
 second_annotation <- glue("R^2=={agg_rsq}*','~MAE=={agg_mae}*','~RMSE=={agg_rmse}")
 
-scatter_aggr_overlapped_features_figure <- agg_overlapped_featureres_df %>% 
+scatter_aggr_overlapping_features_figure <- agg_overlapping_featureres_df %>% 
     ggplot(aes(x = bpaq_tot, y = .pred)) +
     geom_jitter(width = 0.1, size = 3, color = "grey30", alpha = 0.9) +
     geom_smooth(method = "lm", color = "tomato3", fill = "grey80") +
     #geom_abline(slope = 1, lty = 2, color = "grey60") +
-    labs(x = "Empirical Score", y = "Predicted Score", title = "Aggression (Only Overlapped Features)") +
+    labs(x = "Empirical Score", y = "Predicted Score", title = "Aggression (Only Overlapping Features)") +
     scale_x_continuous(limits = c(2.3, 4)) + 
     scale_y_continuous(limits = c(2.7, 3.4)) +
     annotate(geom = "text",
@@ -425,23 +431,62 @@ scatter_aggr_overlapped_features_figure <- agg_overlapped_featureres_df %>%
              parse = TRUE) +
     theme_pander() +
     theme(plot.margin = margin(2, 2, 2, 2, "mm"))
-ggsave(filename = here("outputs", "figs", "model-aggr_outcome-aggr_desc-overlapped_feature_scatter.pdf"), 
-       scatter_aggr_overlapped_features_figure,
+ggsave(filename = here("outputs", "figs", "model-aggr_outcome-aggr_desc-overlapping_feature_scatter.pdf"), 
+       scatter_aggr_overlapping_features_figure,
        width = 6,
        height = 5)
 
-
+# figure 3
 ggarrange(
     scatter_psy_figure,
     scatter_aggr_figure,
     psy_feature_performance_figure,
     aggr_feature_performance_figure,
-    scatter_psy_overlapped_features_figure,
-    scatter_aggr_overlapped_features_figure,
+    scatter_psy_overlapping_features_figure,
+    scatter_aggr_overlapping_features_figure,
     ncol = 2, nrow = 3, labels = LETTERS[1:6]
 ) %>% 
     ggexport(filename = here("outputs", "figs", "figure2.pdf"),
              width = 14, height = 12)
      
 
- 
+# Cross-Predictions ------------------------------------------------------------
+psy_using_aggr_res_df <- 
+    (psy_intercept + as.matrix(feature_psy_holdout_df %>% select(aggr_sorted_feature_names)) %*% aggr_sorted_feature_param) %>% 
+    as_tibble(.name_repair = ~".pred") %>% 
+    bind_cols(baked_psy_holdout_df %>% select(g_psy))
+
+psy_using_aggr_res_df %>% correlation::correlation() %>% pluck("r")
+psy_using_aggr_res_df %>% correlation::correlation() %>% pluck("p")
+psy_using_aggr_res_df %>% 
+    rsq(truth = g_psy, estimate = .pred) %>%
+    pull(.estimate) %>% 
+    format(digits = 3)
+psy_using_aggr_res_df %>% 
+    mae(truth = g_psy, estimate = .pred) %>%
+    pull(.estimate) %>% 
+    format(digits = 3)
+psy_using_aggr_res_df %>% 
+    rmse(truth = g_psy, estimate = .pred) %>%
+    pull(.estimate) %>% 
+    format(digits = 3)
+
+aggr_using_psy_res_df <- 
+    (aggr_intercept + as.matrix(feature_aggr_holdout_df %>% select(psy_sorted_feature_names)) %*% psy_sorted_feature_param) %>% 
+    as_tibble(.name_repair = ~".pred") %>% 
+    bind_cols(baked_aggr_holdout_df %>% select(bpaq_tot))
+
+aggr_using_psy_res_df %>% correlation::correlation() %>% pluck("r")
+aggr_using_psy_res_df %>% correlation::correlation() %>% pluck("p")
+aggr_using_psy_res_df %>% 
+    rsq(truth = bpaq_tot, estimate = .pred) %>%
+    pull(.estimate) %>% 
+    format(digits = 3)
+aggr_using_psy_res_df %>% 
+    mae(truth = bpaq_tot, estimate = .pred) %>%
+    pull(.estimate) %>% 
+    format(digits = 3)
+aggr_using_psy_res_df %>% 
+    rmse(truth = bpaq_tot, estimate = .pred) %>%
+    pull(.estimate) %>% 
+    format(digits = 3)
