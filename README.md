@@ -25,7 +25,7 @@ cd path_to_a_download_folder
 git clone https://github.com/kamione/yes_youth_aggression
 ```
 
-Start [hku_yesaggression.Rproj](https://github.com/kamione/yes_youth_aggression/blob/master/hku_yesaggression.Rproj) if you would like to run within the RStudio environment.
+Start [hku_yesaggression.Rproj](https://github.com/kamione/yes_youth_aggression/blob/master/hku_yesaggression.Rproj) if you would like to run the scripts within the RStudio environment.
 
 <!-- Usage -->
 
