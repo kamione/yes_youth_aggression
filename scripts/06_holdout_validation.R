@@ -275,7 +275,7 @@ scatter_aggr_figure <- agg_res_df %>%
     labs(
         x = "Empirical Score", 
         y = "Predicted Score", 
-        title = "Trait Aggression (All Features)"
+        title = "Proneness to Aggression (All Features)"
     ) +
     scale_x_continuous(limits = c(-1.5, 4.3)) + 
     scale_y_continuous(limits = c(-1.5, 4.3)) +
@@ -338,7 +338,7 @@ psy_using_psy_res_df %>%
     pull(.estimate) %>% 
     format(digits = 3)
 
-# trait aggression -> trait aggression
+# Proneness to aggression -> Proneness to aggression
 aggr_using_aggr_res_df <- 
     (aggr_intercept + 
          as.matrix(feature_aggr_holdout_df 
@@ -364,7 +364,7 @@ aggr_using_aggr_res_df %>%
     format(digits = 3)
 
 
-# trait aggression -> psychopathology
+# proneness to aggression -> psychopathology
 psy_using_aggr_res_df <- 
     (psy_intercept + 
          as.matrix(feature_psy_holdout_df %>% 
@@ -389,7 +389,7 @@ psy_using_aggr_res_df %>%
     pull(.estimate) %>% 
     format(digits = 3)
 
-# psychopathology -> trait aggression
+# psychopathology -> Proneness to aggression
 aggr_using_psy_res_df <- 
     (aggr_intercept + 
          as.matrix(feature_aggr_holdout_df 
@@ -413,81 +413,3 @@ aggr_using_psy_res_df %>%
     rmse(truth = bpaq_scaled, estimate = .pred) %>%
     pull(.estimate) %>% 
     format(digits = 3)
-
-
-# Select Top Features for General Psychopathology ------------------------------
-psy_rmse_list <- NULL
-for (ith_param in 1:length(overlapping_features)) {
-    params <- psy_sorted_feature_param[psy_feat_idx][1:ith_param]
-    features <- psy_sorted_feature_names[psy_feat_idx][1:ith_param]
-    
-    tmp_df <- select(baked_psy_holdout_df, all_of(features))
-    
-    psy_rmse_list[ith_param] <- (psy_intercept + as.matrix(tmp_df) %*% params) %>% 
-        as_tibble(.name_repair = ~".pred") %>% 
-        bind_cols(baked_psy_holdout_df %>% select(g_psy)) %>% 
-        rmse(truth = g_psy, estimate = .pred) %>%
-        pull(.estimate)
-}
-
-psy_feature_performance_figure <- 
-    as_tibble(
-        list(x = 1:length(overlapping_features), y = psy_rmse_list)
-    ) %>% 
-    ggplot(aes(x = x, y = y)) +
-    geom_point(size = 3, color = "grey30", alpha = 0.8) +
-    scale_x_continuous(breaks = seq(0, 300, 50)) +
-    labs(x = "Number of Features (Sorted by Importance)", y = "RMSE",
-         title = "General Psychopathology") +
-    theme_pander() +
-    theme(plot.margin = margin(2, 2, 2, 2, "mm")) +
-    gghighlight(x <= 50)
-psy_feature_performance_figure
-
-ggsave(filename = here("outputs", "figs", "model-psy_outcome-psy_desc-feature_performance.pdf"), 
-       psy_feature_performance_figure,
-       width = 6,
-       height = 5)
-
-
-# Select Top Features for Trait Aggression -------------------------------------
-aggr_rmse_list <- NULL
-for (ith_param in 1:length(overlapping_features)) {
-    params <- aggr_sorted_feature_param[aggr_feat_idx][1:ith_param]
-    features <- aggr_sorted_feature_names[aggr_feat_idx][1:ith_param]
-    
-    tmp_df <- select(baked_aggr_holdout_df, all_of(features))
-    
-    aggr_rmse_list[ith_param] <- (aggr_intercept + as.matrix(tmp_df) %*% params) %>% 
-        as_tibble(.name_repair = ~".pred") %>% 
-        bind_cols(baked_aggr_holdout_df %>% select(bpaq_scaled)) %>% 
-        rmse(truth = bpaq_scaled, estimate = .pred) %>%
-        pull(.estimate)
-}
-
-aggr_feature_performance_figure <- 
-    as_tibble(
-        list(x = 1:length(overlapping_features), y = aggr_rmse_list)
-    ) %>% 
-    ggplot(aes(x = x, y = y)) +
-    geom_point(size = 3, color = "grey30", alpha = 0.8) +
-    scale_x_continuous(breaks = seq(0, 300, 50)) +
-    labs(x = "Number of Features (Sorted by Importance)", y = "RMSE",
-         title = "Trait Aggression") +
-    theme_pander() +
-    theme(plot.margin = margin(2, 2, 2, 2, "mm")) +
-    gghighlight(x <= 50)
-aggr_feature_performance_figure
-
-ggsave(filename = here("outputs", "figs", "model-aggr_outcome-aggr_desc-feature_performance.pdf"), 
-       aggr_feature_performance_figure,
-       width = 6,
-       height = 5)
-
-# save overlapping top features
-overlapping_top_features <- intersect(
-    aggr_sorted_feature_names[aggr_feat_idx][1:50],
-    psy_sorted_feature_names[psy_feat_idx][1:50]
-)
-
-

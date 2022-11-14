@@ -58,7 +58,7 @@ full_compaison_table <- full_df %>%
         digits = all_continuous() ~ c(2, 2),
         label = list(
             Edu_TotYr = "Years of Education",
-            bpaq_tot = "Trait Aggression",
+            bpaq_tot = "Proneness to Aggression",
             g_psy = "General Psychopathology",
             cidi_e34 = "Aggressive Behavior (Lifetime)"
         )
@@ -81,7 +81,7 @@ full_compaison_table %>%
     )
 
 
-# Correlation between Trait Aggression and General Psychopathology -------------
+# Correlation between Proneness to Aggression and General Psychopathology -------------
 # show the correlations
 full_df %>%
     select(split, g_psy, bpaq_tot) %>% 

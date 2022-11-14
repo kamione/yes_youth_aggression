@@ -24,17 +24,13 @@ fa_feature_details <-
 n_features <- length(fa_feature_details$label)
 print(glue::glue("A total of {n_features} is selected"))
 
-#discovery_df <-  here("data", "processed", "discovery_dataset.rds") %>% 
-#    read_rds() %>% 
-#    select(bpaq_scaled, g_psy, all_of(overlapping_top_features)) %>% 
-#    drop_na()
-
 discovery_df <- read_rds(here("data", "processed", "discovery_dataset.rds"))
 holdout_df <- read_rds(here("data", "processed", "holdout_dataset.rds"))
 
 full_df <- discovery_df %>% 
     mutate(split = "Discovery", .before = Age) %>% 
     bind_rows(holdout_df %>% mutate(split = "Holdout", .before = Age)) %>% 
+    left_join(df_cidi, by = "Parti_ID") %>% 
     select(bpaq_scaled, g_psy, all_of(overlapping_features)) %>% 
     drop_na() %>% 
     mutate(type = "No Missing")
@@ -61,7 +57,7 @@ comparison_df %>%
         digits = all_continuous() ~ c(2, 2),
         label = list(
             Edu_TotYr = "Years of Education",
-            bpaq_tot = "Trait Aggression",
+            bpaq_tot = "Proneness to Aggression",
             g_psy = "General Psychopathology",
             cidi_e34 = "Aggressive Behavior (Lifetime)"
         )
@@ -131,7 +127,7 @@ network_data       <- list()
 network_data$data  <- fa_score_df %>% select(g_psy, bpaq_scaled, fa_feature_details$label)
 network_data$node  <- c("GPsy", "Aggr", fa_feature_details$label)
 network_data$node_detail <- c("General Psychoapthology",
-                              "Trait Aggression",
+                              "Proneness to Aggression",
                               fa_feature_details$details)
 network_data$node_col <- c("#B5CAA0", "#B5CAA0", rep("#DAC9A6", n_features))
 network_data$group <- c("1. Outcomes", "1. Outcomes", rep("2. Features", n_features))
@@ -281,3 +277,11 @@ ggsave(
     width = 8
 )
 plot(g_bs_np, plot = "interval", split0 = TRUE, statistics = "Edge", order = "sample")
+
+
+
+
+
+
+
+
