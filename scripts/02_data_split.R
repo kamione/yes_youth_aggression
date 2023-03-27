@@ -2,12 +2,17 @@
 library(tidyverse)
 library(here)
 library(tidymodels)
+library(factoextra)
+library(pheatmap)
 
 
 # Data IO  ---------------------------------------------------------------------
 psychopathology_list <- c("PHQ9_tot", "YMRS_tot", "HCL32_tot", "GAD7_tot",
                           "LSAS_Tot", "YBOCS_Sym", "Cape_distress_tot",
                           "PQB_tot")
+psychopathology_label <- c("Depression", "Mania", "Hypomania", "General Anxiety", 
+                           "Social Anxiety", "Obsessive-Compulsive", 
+                           "Psychotic-like Experiences", "Prodromal Psychosis")
 preprocessed_df <-  here("data", "processed", 
                          "yes_baseline_outcome-aggression_n-2184_p-244.rds") %>% 
     read_rds()
@@ -24,6 +29,38 @@ pca_res <- discovery_df %>%
     select(psychopathology_list) %>% 
     princomp(cor = TRUE, scores = TRUE)
 summary(pca_res)
+# scree plot
+scree_plot <- fviz_eig(pca_res, barcolor = "grey80", barfill = "grey80") + 
+    ggthemes::theme_pander() +
+    theme(plot.margin = margin(2, 2, 2, 2, "mm"))
+ggsave(scree_plot, 
+       filename = here("outputs", "figs", "psy_pca_scree_plot.pdf"),
+       height = 4,
+       width = 6)
+
+# PCA component heatmap 
+pdf(file = here("outputs", "figs", "psy_pca_heatmap.pdf"), width = 8, height = 4)
+pheatmap(
+    pca_res$loadings %>% 
+        unclass() %>% 
+        as_tibble() %>% 
+        rename_at(vars(starts_with("Comp")), ~str_replace(., "Comp.", "PC")) %>% 
+        mutate(rowname = psychopathology_label) %>% 
+        column_to_rownames("rowname"),
+    color = colorRampPalette(c("navy", "white", "tomato3"))(40),
+    breaks = seq(-1, 1, by = 0.05),
+    display_numbers = TRUE,
+    cluster_rows = TRUE,
+    treeheight_row = 0,
+    cluster_cols = FALSE,
+    angle_col = 0,
+    width = 10, 
+    height = 12
+)
+dev.off()
+
+
+
 discovery_df$g_psy <- pca_res %>% 
     pluck("scores") %>% 
     as_tibble() %>% 

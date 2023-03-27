@@ -59,8 +59,7 @@ full_compaison_table <- full_df %>%
         label = list(
             Edu_TotYr = "Years of Education",
             bpaq_tot = "Proneness to Aggression",
-            g_psy = "General Psychopathology",
-            cidi_e34 = "Aggressive Behavior (Lifetime)"
+            g_psy = "General Psychopathology"
         )
     ) %>% 
     add_overall() %>% 
